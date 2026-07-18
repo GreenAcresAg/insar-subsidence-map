@@ -155,6 +155,32 @@
         <p class="disclaimer-text" style="margin-top:6px">Facilities from OpenStreetMap; SB 535 DACs from CalEPA/OEHHA; community water-system service areas from the State Water Board (SABL).</p>
     </div>
 
+    <!-- ── Topography (2021 LiDAR) ───────────────────────── -->
+    <div class="sidebar-section">
+        <h3 class="section-title">Topography — 2021 LiDAR</h3>
+        <label class="layer-toggle">
+            <input type="checkbox" id="toggle-contours">
+            <span class="toggle-swatch" style="background:repeating-linear-gradient(0deg,#0f172a 0 2px,transparent 2px 5px)"></span>
+            Elevation contours
+        </label>
+        <div class="filter-group sub-toggle" style="margin:6px 0 0 22px">
+            <label class="filter-label" for="contour-interval">Contour interval</label>
+            <select id="contour-interval" class="filter-control">
+                <option value="1">1 ft</option>
+                <option value="2">2 ft</option>
+                <option value="5" selected>5 ft</option>
+                <option value="10">10 ft</option>
+                <option value="20">20 ft</option>
+            </select>
+        </div>
+        <label class="layer-toggle" style="margin-top:8px">
+            <input type="checkbox" id="toggle-elev-bands">
+            <span class="toggle-swatch" style="background:linear-gradient(90deg,#1a9850,#a6d96a,#ffffbf,#fdae61)"></span>
+            Elevation color banding
+        </label>
+        <p class="disclaimer-text" style="margin-top:6px">2021 San Joaquin Valley LiDAR (DWR, Zone 4), NAVD88 feet. Major contours are labelled (every 5&times; the interval) once you zoom in. Pairs with the InSAR base-year subsidence. Coverage: valley floor; far-south edge (Zone 5) not yet available.</p>
+    </div>
+
     <!-- ── GSA boundaries ────────────────────────────────── -->
     <div class="sidebar-section">
         <h3 class="section-title">GSA Boundaries</h3>
@@ -193,6 +219,16 @@
 
 <div id="loading" class="map-loading hidden">Loading imagery…</div>
 
+<div id="boot-overlay" class="boot-overlay">
+    <div class="boot-card">
+        <div class="boot-spinner"></div>
+        <div class="boot-title">Loading map data…</div>
+        <div class="boot-msg">This map streams a lot of data — live InSAR subsidence imagery plus levees, canals, GSA &amp; water-system boundaries, LiDAR topography and more. First load can take up to a minute.</div>
+        <div class="boot-timer"><span id="boot-secs">0</span>s elapsed</div>
+        <button id="boot-dismiss" class="boot-dismiss">Dismiss &amp; explore now</button>
+    </div>
+</div>
+
 <button id="fullscreen-btn" class="fullscreen-btn" title="Toggle fullscreen">
     <svg id="fs-expand" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
@@ -223,6 +259,8 @@
 
 <script src="vendor/maplibre-gl.js"></script>
 <script src="vendor/turf.min.js"></script>
+<script src="vendor/d3.min.js"></script>
+<script src="vendor/lerc.min.js"></script>
 <script src="app.js"></script>
 
 </body>

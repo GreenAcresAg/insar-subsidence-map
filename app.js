@@ -81,9 +81,11 @@ map.on("load", async () => {
     loadRailroads();              // BNSF / UP mainlines
     loadFacilities();             // prisons, hospitals, treatment plants
     loadLevees();                 // levees + leveed areas (USACE NLD)
+    loadLidar();                  // 2021 LiDAR contours + elevation bands (DWR)
     loadGSAs();                   // Tulare Lake Subbasin GSA boundaries
     loadTotalDates();             // cumulative-since-2015 catalog for click popups
     await loadProduct();          // fetch dates + legend, add overlay
+    map.once("idle", hideBoot);   // dismiss the boot overlay once first tiles are in
 });
 /* Pointer cursor over anything clickable. */
 map.on("mousemove", (e) => {
@@ -96,6 +98,23 @@ map.on("mousemove", (e) => {
 map.on("dataloading", () => showLoading(true));
 map.on("idle", () => showLoading(false));
 function showLoading(on){ document.getElementById("loading").classList.toggle("hidden", !on); }
+
+/* Boot overlay: elapsed-seconds timer, auto-hides once the map is ready. */
+const bootStart = Date.now();
+let bootHidden = false;
+const bootTimer = setInterval(() => {
+    const el = document.getElementById("boot-secs");
+    if (el) el.textContent = Math.round((Date.now() - bootStart) / 1000);
+}, 250);
+function hideBoot(){
+    if (bootHidden) return;
+    bootHidden = true;
+    clearInterval(bootTimer);
+    const o = document.getElementById("boot-overlay");
+    if (o) o.classList.add("hidden");
+}
+document.getElementById("boot-dismiss").addEventListener("click", hideBoot);
+setTimeout(hideBoot, 90000);   // safety fallback
 
 /* ── Load a product: dates, overlay, legend ──────────────────────── */
 async function loadProduct(){
@@ -598,6 +617,136 @@ async function loadFacilities(){
         paint: { "text-color": "#e2e8f0", "text-halo-color": "#0f172a", "text-halo-width": 1.5 } });
     applyInfraVisibility();
 }
+
+/* ── 2021 San Joaquin Valley LiDAR (DWR ImageServer) — contours + bands ── */
+const LIDAR = "https://gis.water.ca.gov/arcgisimg/rest/services/Elevation/SanJoaquinValley_Zone4_2021_LIDAR/ImageServer";
+let contourInterval = 5;   // feet
+function lidarTileBase(rule){
+    return `${LIDAR}/exportImage?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857` +
+        `&size=512,512&format=png&transparent=true&f=image&renderingRule=${rule}`;
+}
+function contourTileUrl(){
+    const rr = encodeURIComponent(JSON.stringify({ rasterFunction: "Contour",
+        rasterFunctionArguments: { ContourInterval: contourInterval, ContourType: 0 } }));
+    return lidarTileBase(rr);
+}
+function elevBandTileUrl(){
+    // Elevation color ramp scoped to the valley range so bands are visible on flat ground.
+    const rr = encodeURIComponent(JSON.stringify({ rasterFunction: "Colormap",
+        rasterFunctionArguments: { ColorrampName: "Elevation #1", Raster: {
+            rasterFunction: "Stretch",
+            rasterFunctionArguments: { StretchType: 5, Min: 0, Max: 255, Statistics: [[150, 500, 320, 70]], DRA: false } } } }));
+    return lidarTileBase(rr);
+}
+function loadLidar(){
+    map.addSource("lidar-color", { type: "raster", tiles: [elevBandTileUrl()], tileSize: 512 });
+    map.addLayer({ id: "lidar-color", type: "raster", source: "lidar-color",
+        layout: { visibility: "none" }, paint: { "raster-opacity": 0.7 } }, map.getLayer("labels") ? "labels" : undefined);
+    map.addSource("lidar-contour", { type: "raster", tiles: [contourTileUrl()], tileSize: 512 });
+    map.addLayer({ id: "lidar-contour", type: "raster", source: "lidar-contour",
+        layout: { visibility: "none" }, paint: { "raster-opacity": 0.85 } }, map.getLayer("labels") ? "labels" : undefined);
+}
+document.getElementById("toggle-contours").addEventListener("change", (e) => {
+    if (map.getLayer("lidar-contour")) map.setLayoutProperty("lidar-contour", "visibility", e.target.checked ? "visible" : "none");
+    e.target.checked ? updateContourLabels() : clearContourLabels();
+});
+document.getElementById("toggle-elev-bands").addEventListener("change", (e) => {
+    if (map.getLayer("lidar-color")) map.setLayoutProperty("lidar-color", "visibility", e.target.checked ? "visible" : "none");
+});
+document.getElementById("contour-interval").addEventListener("change", (e) => {
+    contourInterval = +e.target.value;
+    const src = map.getSource("lidar-contour");
+    if (src) src.setTiles([contourTileUrl()]);
+    updateContourLabels();
+});
+
+/* Labeled MAJOR contours — generated client-side from the LiDAR DEM (d3-contour) so we have
+   vector lines to place elevation labels on. Shown when the contour layer is on and zoomed in. */
+const CONTOUR_LABEL_MINZOOM = 11;
+function majorInterval(){ return contourInterval * 5; }
+function contoursOn(){ const el = document.getElementById("toggle-contours"); return el && el.checked; }
+
+function mercator(lng, lat){ const R = 6378137; return [R * lng * Math.PI / 180, R * Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360))]; }
+
+/* Pull the DEM for the current view as one LERC raster (fast) and decode to a float grid. */
+async function sampleGrid(bounds, size){
+    const west = bounds.getWest(), east = bounds.getEast(), north = bounds.getNorth(), south = bounds.getSouth();
+    const [xmin, ymin] = mercator(west, south), [xmax, ymax] = mercator(east, north);
+    const url = `${LIDAR}/exportImage?bbox=${xmin},${ymin},${xmax},${ymax}&bboxSR=3857&imageSR=3857` +
+        `&size=${size},${size}&format=lerc&f=image`;
+    try {
+        const r = await fetch(url);
+        if (!r.ok) return null;
+        const dec = Lerc.decode(await r.arrayBuffer());
+        const px = dec.pixels[0], mask = dec.mask, W = dec.width, H = dec.height;
+        const nd = dec.statistics && dec.statistics[0] && dec.statistics[0].noDataValue;
+        const grid = new Float64Array(W * H);
+        for (let i = 0; i < W * H; i++) { const v = px[i]; grid[i] = ((mask && !mask[i]) || v === nd || v < -1e30) ? NaN : v; }
+        return { grid, W, H, west, east, north, south };
+    } catch (e) { return null; }
+}
+
+function fillHoles(grid, W, H){
+    const idx = (i, j) => j * W + i;
+    for (let pass = 0; pass < 12; pass++) {
+        let holes = false;
+        const copy = Float64Array.from(grid);
+        for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+            if (!isNaN(grid[idx(i, j)])) continue;
+            let sum = 0, n = 0;
+            for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+                const ii = i + di, jj = j + dj;
+                if (ii >= 0 && ii < W && jj >= 0 && jj < H) { const v = grid[idx(ii, jj)]; if (!isNaN(v)) { sum += v; n++; } }
+            }
+            if (n) copy[idx(i, j)] = sum / n; else holes = true;
+        }
+        grid.set(copy);
+        if (!holes) break;
+    }
+    let sum = 0, n = 0; for (const v of grid) if (!isNaN(v)) { sum += v; n++; }
+    const mean = n ? sum / n : 0; for (let k = 0; k < grid.length; k++) if (isNaN(grid[k])) grid[k] = mean;
+}
+
+let contourLayersReady = false;
+function ensureContourLayers(){
+    if (contourLayersReady) return;
+    map.addSource("contour-major", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+    map.addLayer({ id: "contour-major-line", type: "line", source: "contour-major",
+        paint: { "line-color": "#fde68a", "line-width": 1.3, "line-opacity": 0.9 } });
+    map.addLayer({ id: "contour-major-label", type: "symbol", source: "contour-major",
+        layout: { "symbol-placement": "line", "text-field": ["concat", ["to-string", ["get", "value"]], " ft"],
+                  "text-size": 11, "text-font": ["Noto Sans Bold"], "symbol-spacing": 260 },
+        paint: { "text-color": "#fef3c7", "text-halo-color": "#0f172a", "text-halo-width": 1.7 } });
+    contourLayersReady = true;
+}
+function clearContourLabels(){
+    const s = map.getSource("contour-major");
+    if (s) s.setData({ type: "FeatureCollection", features: [] });
+}
+
+const updateContourLabels = debounce(async () => {
+    if (!contoursOn() || map.getZoom() < CONTOUR_LABEL_MINZOOM) { clearContourLabels(); return; }
+    const g = await sampleGrid(map.getBounds(), 256);
+    if (!g) return;
+    fillHoles(g.grid, g.W, g.H);
+    let mn = Infinity, mx = -Infinity;
+    for (const v of g.grid) { if (v < mn) mn = v; if (v > mx) mx = v; }
+    const mi = majorInterval(), levels = [];
+    for (let t = Math.ceil(mn / mi) * mi; t <= mx; t += mi) { levels.push(t); if (levels.length > 14) break; }
+    if (!levels.length) { clearContourLabels(); return; }
+    const cs = d3.contours().size([g.W, g.H]).thresholds(levels)(Array.from(g.grid));
+    const gx2lng = gx => g.west + (Math.min(Math.max(gx, 0), g.W - 1) / (g.W - 1)) * (g.east - g.west);
+    const gy2lat = gy => g.north - (Math.min(Math.max(gy, 0), g.H - 1) / (g.H - 1)) * (g.north - g.south);
+    const feats = [];
+    for (const c of cs) for (const poly of c.coordinates) for (const ring of poly) {
+        if (ring.length < 2) continue;
+        feats.push({ type: "Feature", properties: { value: Math.round(c.value) },
+            geometry: { type: "LineString", coordinates: ring.map(([gx, gy]) => [gx2lng(gx), gy2lat(gy)]) } });
+    }
+    ensureContourLayers();
+    map.getSource("contour-major").setData({ type: "FeatureCollection", features: feats });
+}, 350);
+map.on("moveend", () => { if (contoursOn()) updateContourLabels(); });
 
 /* ── Optional, heavier layers: fetched only when first switched on ─── */
 function addRivers(geo){

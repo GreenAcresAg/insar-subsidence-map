@@ -702,6 +702,53 @@ body {
 }
 .map-loading.hidden { display: none; }
 
+/* Boot loading overlay */
+.boot-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15,23,42,0.6);
+    backdrop-filter: blur(1.5px);
+}
+.boot-overlay.hidden { display: none; }
+.boot-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 26px 30px;
+    max-width: 340px;
+    text-align: center;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.55);
+}
+.boot-spinner {
+    width: 38px;
+    height: 38px;
+    margin: 0 auto 16px;
+    border: 3px solid #334155;
+    border-top-color: #38bdf8;
+    border-radius: 50%;
+    animation: boot-spin 0.9s linear infinite;
+}
+@keyframes boot-spin { to { transform: rotate(360deg); } }
+.boot-title { font-size: 15px; font-weight: 700; color: #f8fafc; margin-bottom: 8px; }
+.boot-msg { font-size: 12.5px; color: #94a3b8; line-height: 1.5; margin-bottom: 14px; }
+.boot-timer { font-size: 14px; font-weight: 600; color: #7dd3fc; font-variant-numeric: tabular-nums; margin-bottom: 14px; }
+.boot-dismiss {
+    padding: 7px 14px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #cbd5e1;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.boot-dismiss:hover { color: #f1f5f9; border-color: #475569; background: #263447; }
+
 /* Infrastructure click popup (MapLibre) */
 .info-popup .maplibregl-popup-content {
     background: #1e293b;

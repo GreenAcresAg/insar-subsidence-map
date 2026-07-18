@@ -46,6 +46,11 @@ services — no data is stored locally.
   - **Critical facilities** — prisons, hospitals, water/wastewater treatment plants (OSM).
   - **Disadvantaged communities** — CalEPA SB 535 DAC census tracts (optional).
   - **Public water systems** — community water-system service areas, SWRCB SABL (optional).
+- **Topography (2021 LiDAR)** — elevation **contours** (selectable 1/2/5/10/20 ft interval) and
+  optional **elevation color banding**, live from DWR's `SanJoaquinValley_Zone4_2021_LIDAR`
+  ImageServer (NAVD88 feet). **Major contours are labelled** (every 5× the interval) when zoomed
+  in — generated client-side with d3-contour from a LERC-decoded DEM grid. Pairs with the InSAR
+  subsidence for base-year elevation context.
 - **GSA boundaries** for the Tulare Lake Subbasin and every surrounding subbasin (Kings,
   Kaweah, Tule, Kern County, Westside, Pleasant Valley), coloured by subbasin with a legend,
   GSA-name labels, and an optional shaded-fill toggle.
