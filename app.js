@@ -89,7 +89,7 @@ map.on("load", async () => {
 });
 /* Pointer cursor over anything clickable. */
 map.on("mousemove", (e) => {
-    const layers = INFO_LAYERS.filter(l => map.getLayer(l));
+    const layers = [...INFO_LAYERS, "cgps-pts", "benchmark-pts"].filter(l => map.getLayer(l));
     const over = layers.length && map.queryRenderedFeatures(e.point, { layers }).length;
     map.getCanvas().style.cursor = over ? "pointer" : "";
 });
@@ -208,6 +208,11 @@ async function loadLegend(){
 
 /* ── Click → infrastructure info popup, else point-value readout ──── */
 map.on("click", (e) => {
+    // Monitoring points (chart popup) take priority
+    const monL = ["cgps-pts", "benchmark-pts"].filter(l => map.getLayer(l));
+    const mon = monL.length ? map.queryRenderedFeatures(e.point, { layers: monL }) : [];
+    if (mon.length) { openMonitorPopup(e.lngLat, mon[0]); return; }
+    // Infrastructure info popups
     const layers = INFO_LAYERS.filter(l => map.getLayer(l));
     const hits = layers.length ? map.queryRenderedFeatures(e.point, { layers }) : [];
     if (hits.length) { openInfoPopup(e.lngLat, hits[0]); return; }
@@ -816,6 +821,104 @@ document.querySelectorAll("[data-infra]").forEach(cb => cb.addEventListener("cha
     const vis = cb.checked ? "visible" : "none";
     (INFRA_GROUPS[cb.dataset.infra] || []).forEach(l => { if (map.getLayer(l)) map.setLayoutProperty(l, "visibility", vis); });
 }));
+
+/* ── Subsidence monitoring points (CGPS + GSA benchmarks) ────────── */
+let cgpsSeries = {}, benchmarkSeries = {}, cgpsReady = false, benchReady = false;
+
+async function loadCgps(){
+    if (cgpsReady) return;
+    const [geo, ser] = await Promise.all([
+        fetchGeo("data/cgps_stations.geojson"), fetchGeo("data/cgps_series.json"),
+    ]);
+    cgpsSeries = ser || {};
+    if (geo) {
+        map.addSource("cgps", { type: "geojson", data: geo });
+        map.addLayer({ id: "cgps-pts", type: "circle", source: "cgps",
+            paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, 3.2, 13, 7],
+                     "circle-color": "#c084fc", "circle-stroke-color": "#f8fafc",
+                     "circle-stroke-width": 1.2, "circle-opacity": 0.92 } });
+        map.addLayer({ id: "cgps-label", type: "symbol", source: "cgps", minzoom: 10.5,
+            layout: { "text-field": ["get", "sta"], "text-size": 10, "text-font": ["Noto Sans Bold"],
+                      "text-offset": [0, 1], "text-anchor": "top" },
+            paint: { "text-color": "#e9d5ff", "text-halo-color": "#0f172a", "text-halo-width": 1.4 } });
+    }
+    cgpsReady = true;
+}
+async function loadBenchmarks(){
+    if (benchReady) return;
+    const [geo, ser] = await Promise.all([
+        fetchGeo("data/benchmarks.geojson"), fetchGeo("data/benchmark_series.json"),
+    ]);
+    benchmarkSeries = ser || {};
+    if (geo) {
+        map.addSource("benchmarks", { type: "geojson", data: geo });
+        map.addLayer({ id: "benchmark-pts", type: "circle", source: "benchmarks",
+            paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, 2.8, 13, 6],
+                     "circle-color": "#fbbf24", "circle-stroke-color": "#0f172a",
+                     "circle-stroke-width": 1, "circle-opacity": 0.9 } });
+        map.addLayer({ id: "benchmark-label", type: "symbol", source: "benchmarks", minzoom: 11.5,
+            layout: { "text-field": ["get", "name"], "text-size": 9.5, "text-font": ["Noto Sans Bold"],
+                      "text-offset": [0, 0.9], "text-anchor": "top", "text-max-width": 8 },
+            paint: { "text-color": "#fde68a", "text-halo-color": "#0f172a", "text-halo-width": 1.4 } });
+    }
+    benchReady = true;
+}
+document.getElementById("toggle-cgps").addEventListener("change", async (e) => {
+    if (e.target.checked) await loadCgps();
+    ["cgps-pts", "cgps-label"].forEach(l => { if (map.getLayer(l)) map.setLayoutProperty(l, "visibility", e.target.checked ? "visible" : "none"); });
+});
+document.getElementById("toggle-benchmarks").addEventListener("change", async (e) => {
+    if (e.target.checked) await loadBenchmarks();
+    ["benchmark-pts", "benchmark-label"].forEach(l => { if (map.getLayer(l)) map.setLayoutProperty(l, "visibility", e.target.checked ? "visible" : "none"); });
+});
+
+/* Small inline SVG line chart of a [[decimal_year, value], ...] series. */
+function chartSVG(series, color){
+    const W = 288, H = 122, pl = 36, pr = 8, ptop = 10, pb = 18;
+    const xs = series.map(p => p[0]), ys = series.map(p => p[1]);
+    const xmin = Math.min(...xs), xmax = Math.max(...xs);
+    let ymin = Math.min(...ys), ymax = Math.max(...ys);
+    if (ymin === ymax) { ymin -= 1; ymax += 1; }
+    const padY = (ymax - ymin) * 0.08; ymin -= padY; ymax += padY;
+    const X = x => pl + (xmax === xmin ? 0 : (x - xmin) / (xmax - xmin)) * (W - pl - pr);
+    const Y = y => ptop + (1 - (y - ymin) / (ymax - ymin)) * (H - ptop - pb);
+    const pts = series.map(p => `${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(" ");
+    let zero = "";
+    if (ymin < 0 && ymax > 0) { const zy = Y(0).toFixed(1); zero = `<line x1="${pl}" y1="${zy}" x2="${W - pr}" y2="${zy}" stroke="#475569" stroke-dasharray="2 2" stroke-width="1"/>`; }
+    return `<svg class="mon-chart" viewBox="0 0 ${W} ${H}" width="100%">` +
+        `<line x1="${pl}" y1="${ptop}" x2="${pl}" y2="${H - pb}" stroke="#334155"/>` +
+        `<line x1="${pl}" y1="${H - pb}" x2="${W - pr}" y2="${H - pb}" stroke="#334155"/>${zero}` +
+        `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.6"/>` +
+        `<text x="${pl - 3}" y="${ptop + 4}" text-anchor="end" class="mon-ax">${ymax.toFixed(1)}</text>` +
+        `<text x="${pl - 3}" y="${H - pb}" text-anchor="end" class="mon-ax">${ymin.toFixed(1)}</text>` +
+        `<text x="${pl}" y="${H - 4}" text-anchor="start" class="mon-ax">${Math.round(xmin)}</text>` +
+        `<text x="${W - pr}" y="${H - 4}" text-anchor="end" class="mon-ax">${Math.round(xmax)}</text></svg>`;
+}
+function openMonitorPopup(lngLat, f){
+    const kind = f.layer.id === "cgps-pts" ? "cgps" : "benchmark";
+    const p = f.properties;
+    const id = kind === "cgps" ? p.sta : p.id;
+    const series = (kind === "cgps" ? cgpsSeries : benchmarkSeries)[id];
+    let title, type; const rows = [];
+    if (kind === "cgps") {
+        title = p.sta; type = "Continuous GPS · NGL / EarthScope";
+        rows.push(["Record", `${(p.start || "").slice(0, 7)} → ${(p.end || "").slice(0, 7)}`]);
+        if (p.change_ft != null && p.change_ft !== "") rows.push(["Vertical change", `${(+p.change_ft).toFixed(2)} ft`]);
+    } else {
+        title = p.name || ("Benchmark " + p.id); type = `${p.site_type || "Benchmark"} · DWR GSP Monitoring`;
+        if (p.gsa) rows.push(["GSA", p.gsa]);
+        if (p.basin) rows.push(["Subbasin", p.basin]);
+        if (p.change != null && p.change !== "") rows.push(["Displacement Δ", `${(+p.change).toFixed(2)} ft`]);
+    }
+    const rowsHtml = rows.map(r => `<div class="pop-row"><span class="pop-k">${esc(r[0])}</span><span class="pop-v">${esc(r[1])}</span></div>`).join("");
+    const chart = (series && series.length > 1)
+        ? `<div class="mon-chart-title">Cumulative vertical change (ft)</div>${chartSVG(series, kind === "cgps" ? "#c084fc" : "#fbbf24")}`
+        : `<div class="pop-note">No time-series submitted for this site.</div>`;
+    const html = `<div class="pop-title">${esc(title)}</div><div class="pop-type">${esc(type)}</div>` +
+        `${rowsHtml}<div class="pop-sec">History</div>${chart}`;
+    if (infoPopup) infoPopup.remove();
+    infoPopup = new maplibregl.Popup({ maxWidth: "320px", className: "info-popup" }).setLngLat(lngLat).setHTML(html).addTo(map);
+}
 
 /* ── GSA boundaries (Tulare Lake Subbasin + surrounding subbasins) ── */
 const GSA_GROUPS = {

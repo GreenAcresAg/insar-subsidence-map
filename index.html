@@ -181,6 +181,22 @@
         <p class="disclaimer-text" style="margin-top:6px">2021 San Joaquin Valley LiDAR (DWR, Zone 4), NAVD88 feet. Major contours are labelled (every 5&times; the interval) once you zoom in. Pairs with the InSAR base-year subsidence. Coverage: valley floor; far-south edge (Zone 5) not yet available.</p>
     </div>
 
+    <!-- ── Monitoring (points w/ historical series) ──────── -->
+    <div class="sidebar-section">
+        <h3 class="section-title">Subsidence Monitoring</h3>
+        <label class="layer-toggle">
+            <input type="checkbox" id="toggle-cgps">
+            <span class="toggle-swatch" style="background:#c084fc;border-radius:50%;border:1px solid #f8fafc"></span>
+            Continuous GPS stations
+        </label>
+        <label class="layer-toggle" style="margin-top:6px">
+            <input type="checkbox" id="toggle-benchmarks">
+            <span class="toggle-swatch" style="background:#fbbf24;border-radius:50%;border:1px solid #0f172a"></span>
+            GSA subsidence benchmarks
+        </label>
+        <p class="disclaimer-text" style="margin-top:6px">Click a point for its historical vertical-displacement chart. CGPS from the Nevada Geodetic Lab (EarthScope); benchmarks are the physical survey monuments GSAs report to DWR (GSP Monitoring / annual reports).</p>
+    </div>
+
     <!-- ── GSA boundaries ────────────────────────────────── -->
     <div class="sidebar-section">
         <h3 class="section-title">GSA Boundaries</h3>
