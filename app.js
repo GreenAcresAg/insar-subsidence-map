@@ -854,7 +854,8 @@ async function loadBenchmarks(){
         map.addSource("benchmarks", { type: "geojson", data: geo });
         map.addLayer({ id: "benchmark-pts", type: "circle", source: "benchmarks",
             paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, 2.8, 13, 6],
-                     "circle-color": "#fbbf24", "circle-stroke-color": "#0f172a",
+                     "circle-color": ["case", ["==", ["get", "site_type"], "Extensometer"], "#38bdf8", "#fbbf24"],
+                     "circle-stroke-color": "#0f172a",
                      "circle-stroke-width": 1, "circle-opacity": 0.9 } });
         map.addLayer({ id: "benchmark-label", type: "symbol", source: "benchmarks", minzoom: 11.5,
             layout: { "text-field": ["get", "name"], "text-size": 9.5, "text-font": ["Noto Sans Bold"],
@@ -899,23 +900,38 @@ function openMonitorPopup(lngLat, f){
     const p = f.properties;
     const id = kind === "cgps" ? p.sta : p.id;
     const series = (kind === "cgps" ? cgpsSeries : benchmarkSeries)[id];
+    const isExt = kind === "benchmark" && /extensometer/i.test(p.site_type || "");
     let title, type; const rows = [];
     if (kind === "cgps") {
         title = p.sta; type = "Continuous GPS · NGL / EarthScope";
         rows.push(["Record", `${(p.start || "").slice(0, 7)} → ${(p.end || "").slice(0, 7)}`]);
         if (p.change_ft != null && p.change_ft !== "") rows.push(["Vertical change", `${(+p.change_ft).toFixed(2)} ft`]);
-    } else {
-        title = p.name || ("Benchmark " + p.id); type = `${p.site_type || "Benchmark"} · DWR GSP Monitoring`;
+    } else if (isExt) {
+        title = p.name || ("Extensometer " + p.id);
+        type = "Extensometer (aquifer-system compaction) · DWR GSP Monitoring";
         if (p.gsa) rows.push(["GSA", p.gsa]);
         if (p.basin) rows.push(["Subbasin", p.basin]);
-        if (p.change != null && p.change !== "") rows.push(["Displacement Δ", `${(+p.change).toFixed(2)} ft`]);
+        if (p.change != null && p.change !== "") rows.push(["Cumulative compaction", `${(+p.change).toFixed(2)} ft`]);
+    } else {
+        title = p.name || ("Benchmark " + p.id);
+        type = `${p.site_type || "Benchmark"} · ${p.source || "DWR GSP Monitoring"}`;
+        if (p.gsa) rows.push(["GSA", p.gsa]);
+        if (p.basin) rows.push(["Subbasin", p.basin]);
+        if (p.change != null && p.change !== "") rows.push(["Cumulative change", `${(+p.change).toFixed(2)} ft`]);
     }
     const rowsHtml = rows.map(r => `<div class="pop-row"><span class="pop-k">${esc(r[0])}</span><span class="pop-v">${esc(r[1])}</span></div>`).join("");
+    const chartTitle = isExt ? "Cumulative compaction at borehole (ft)" : "Cumulative vertical change (ft)";
     const chart = (series && series.length > 1)
-        ? `<div class="mon-chart-title">Cumulative vertical change (ft)</div>${chartSVG(series, kind === "cgps" ? "#c084fc" : "#fbbf24")}`
+        ? `<div class="mon-chart-title">${chartTitle}</div>${chartSVG(series, kind === "cgps" ? "#c084fc" : isExt ? "#38bdf8" : "#fbbf24")}`
         : `<div class="pop-note">No time-series submitted for this site.</div>`;
+    const extNote = isExt
+        ? `<div class="pop-note">Extensometers measure compaction of the aquifer system within the borehole, relative to a deep anchor — this is <b>not</b> ground-surface elevation and uses a different sign/datum than the survey benchmarks. Don't compare it directly with nearby benchmark or GPS records: e.g. GPS station P300 (4.9 km away) shows the surface essentially flat (±0.03 ft) over 2004–2026.</div>`
+        : "";
+    const arNote = (!isExt && p.source && /annual report/i.test(p.source))
+        ? `<div class="pop-note">Series stitched from the Tulare Lake GSP <b>annual reports</b>: per-water-year average annual change (WY2020–22, from the monitoring-map figures) chained with Fall-to-Fall releveling (WY2022→2025, Table E-1), cumulative from 2019. A best-effort estimate combining two survey bases — read the trend, not any single point.</div>`
+        : "";
     const html = `<div class="pop-title">${esc(title)}</div><div class="pop-type">${esc(type)}</div>` +
-        `${rowsHtml}<div class="pop-sec">History</div>${chart}`;
+        `${rowsHtml}<div class="pop-sec">History</div>${chart}${extNote}${arNote}`;
     if (infoPopup) infoPopup.remove();
     infoPopup = new maplibregl.Popup({ maxWidth: "320px", className: "info-popup" }).setLngLat(lngLat).setHTML(html).addTo(map);
 }

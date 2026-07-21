@@ -50,7 +50,13 @@ services — no data is stored locally.
   - **Continuous GPS stations** — 72 stations in-area from the Nevada Geodetic Lab / EarthScope,
     with their monthly vertical position series (e.g., CRCN at Corcoran shows ~−9 ft since 2010).
   - **GSA subsidence benchmarks** — the physical survey monuments GSAs report to DWR via the SGMA
-    portal (GSP Monitoring / annual reports), with their `CUM_DISPLACE_ELEV` history.
+    portal (GSP Monitoring / annual reports), with their `CUM_DISPLACE_ELEV` history. For the
+    **Tulare Lake** subbasin (which DWR's central export barely covers) the benchmark series are
+    enriched from the **GSP annual-report PDFs** (WY2020–WY2025): per-water-year average annual
+    change (WY2020–22 monitoring-map figures) chained with Fall-to-Fall releveling (WY2022→2025,
+    Table E-1) into a cumulative curve. These are flagged in-popup as a stitched estimate.
+    **Extensometers** are drawn separately (blue) and labelled as aquifer-system compaction, not
+    surface elevation.
 - **Topography (2021 LiDAR)** — elevation **contours** (selectable 1/2/5/10/20 ft interval) and
   optional **elevation color banding**, live from DWR's `SanJoaquinValley_Zone4_2021_LIDAR`
   ImageServer (NAVD88 feet). **Major contours are labelled** (every 5× the interval) when zoomed
@@ -81,6 +87,7 @@ open http://localhost:8001
 python3 prep_infrastructure.py   # OSM (Overpass) -> data/*.geojson
 python3 prep_cgps.py             # Nevada Geodetic Lab -> data/cgps_stations.geojson + cgps_series.json
 python3 prep_benchmarks.py       # DWR GSP Monitoring -> data/benchmarks.geojson + benchmark_series.json
+python3 prep_benchmarks_annual.py # enrich Tulare Lake from ../sgma-annual-report-data (WY2020–25)
 ```
 Fetches the Friant-Kern Canal, California Aqueduct, numbered highways, the CA High-Speed
 Rail alignment, and rivers & streams (rivers + named streams). The two canals are buffered
