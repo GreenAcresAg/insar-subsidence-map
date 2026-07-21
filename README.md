@@ -51,10 +51,11 @@ services — no data is stored locally.
     with their monthly vertical position series (e.g., CRCN at Corcoran shows ~−9 ft since 2010).
   - **GSA subsidence benchmarks** — the physical survey monuments GSAs report to DWR via the SGMA
     portal (GSP Monitoring / annual reports), with their `CUM_DISPLACE_ELEV` history. For the
-    **Tulare Lake** subbasin (which DWR's central export barely covers) the benchmark series are
-    enriched from the **GSP annual-report PDFs** (WY2020–WY2025): per-water-year average annual
-    change (WY2020–22 monitoring-map figures) chained with Fall-to-Fall releveling (WY2022→2025,
-    Table E-1) into a cumulative curve. These are flagged in-popup as a stitched estimate.
+    **Tulare Lake** and **Kaweah** subbasins (which DWR's central export barely covers) the
+    benchmark series are enriched from the **GSP annual-report PDFs**: Tulare Lake (WY2020–25) =
+    per-water-year average annual change chained with Fall-to-Fall releveling; Kaweah (WY2023–25)
+    = surveyed ground-surface elevations plotted as displacement from the 2020 baseline. Both are
+    flagged in-popup as a stitched estimate.
     **Extensometers** are drawn separately (blue) and labelled as aquifer-system compaction, not
     surface elevation.
 - **Topography (2021 LiDAR)** — elevation **contours** (selectable 1/2/5/10/20 ft interval) and
