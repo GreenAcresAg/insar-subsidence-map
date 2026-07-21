@@ -57,6 +57,9 @@ services — no data is stored locally.
     and Tule (WY2024–25) = surveyed ground-surface elevations plotted as displacement from the
     earliest surveyed year. All flagged in-popup as a stitched estimate. (Tule's Lower-Tule /
     Alpaugh / Kern-Tulare benchmarks are omitted — the reports publish no coordinates for them.)
+    **Kings** publishes no numeric benchmark data (its report only colour-classes benchmarks by
+    InSAR on a map), so each Kings benchmark's series is DWR TRE ALTAMIRA InSAR cumulative
+    displacement **sampled at its coordinates** (2015→present), flagged as InSAR-derived in-popup.
     **Extensometers** are drawn separately (blue) and labelled as aquifer-system compaction, not
     surface elevation.
 - **Topography (2021 LiDAR)** — elevation **contours** (selectable 1/2/5/10/20 ft interval) and
@@ -89,7 +92,8 @@ open http://localhost:8001
 python3 prep_infrastructure.py   # OSM (Overpass) -> data/*.geojson
 python3 prep_cgps.py             # Nevada Geodetic Lab -> data/cgps_stations.geojson + cgps_series.json
 python3 prep_benchmarks.py       # DWR GSP Monitoring -> data/benchmarks.geojson + benchmark_series.json
-python3 prep_benchmarks_annual.py # enrich Tulare Lake from ../sgma-annual-report-data (WY2020–25)
+python3 prep_benchmarks_annual.py # enrich Tulare Lake/Kaweah/Tule from ../sgma-annual-report-data
+python3 prep_kings_insar.py       # Kings: sample DWR InSAR at each benchmark (no report numbers)
 ```
 Fetches the Friant-Kern Canal, California Aqueduct, numbered highways, the CA High-Speed
 Rail alignment, and rivers & streams (rivers + named streams). The two canals are buffered

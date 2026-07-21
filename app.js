@@ -927,11 +927,14 @@ function openMonitorPopup(lngLat, f){
     const extNote = isExt
         ? `<div class="pop-note">Extensometers measure compaction of the aquifer system within the borehole, relative to a deep anchor — this is <b>not</b> ground-surface elevation and uses a different sign/datum than the survey benchmarks. Don't compare it directly with nearby benchmark or GPS records: e.g. GPS station P300 (4.9 km away) shows the surface essentially flat (±0.03 ft) over 2004–2026.</div>`
         : "";
-    const arNote = (!isExt && p.source && /annual report/i.test(p.source))
-        ? (/Kaweah|Tule/i.test(p.source)
+    let arNote = "";
+    if (!isExt && p.source && /InSAR/i.test(p.source)) {
+        arNote = `<div class="pop-note">The Kings Basin report publishes no numeric benchmark leveling — subsidence is monitored by InSAR. This series is DWR's <b>TRE ALTAMIRA InSAR</b> cumulative vertical displacement sampled at the benchmark's coordinates (cumulative since 2015-06-13; negative = subsidence).</div>`;
+    } else if (!isExt && p.source && /annual report/i.test(p.source)) {
+        arNote = (/Kaweah|Tule/i.test(p.source)
             ? `<div class="pop-note">Series from the GSP <b>annual reports</b>: per-benchmark surveyed ground-surface elevations, plotted as displacement relative to the earliest surveyed year. Best-effort estimate — read the trend, not any single point.</div>`
-            : `<div class="pop-note">Series stitched from the Tulare Lake GSP <b>annual reports</b>: per-water-year average annual change (WY2020–22, from the monitoring-map figures) chained with Fall-to-Fall releveling (WY2022→2025, Table E-1), cumulative from 2019. A best-effort estimate combining two survey bases — read the trend, not any single point.</div>`)
-        : "";
+            : `<div class="pop-note">Series stitched from the Tulare Lake GSP <b>annual reports</b>: per-water-year average annual change (WY2020–22, from the monitoring-map figures) chained with Fall-to-Fall releveling (WY2022→2025, Table E-1), cumulative from 2019. A best-effort estimate combining two survey bases — read the trend, not any single point.</div>`);
+    }
     const html = `<div class="pop-title">${esc(title)}</div><div class="pop-type">${esc(type)}</div>` +
         `${rowsHtml}<div class="pop-sec">History</div>${chart}${extNote}${arNote}`;
     if (infoPopup) infoPopup.remove();
