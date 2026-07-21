@@ -929,7 +929,7 @@ function openMonitorPopup(lngLat, f){
         : "";
     let arNote = "";
     if (!isExt && p.source && /InSAR/i.test(p.source)) {
-        arNote = `<div class="pop-note">The Kings Basin report publishes no numeric benchmark leveling — subsidence is monitored by InSAR. This series is DWR's <b>TRE ALTAMIRA InSAR</b> cumulative vertical displacement sampled at the benchmark's coordinates (cumulative since 2015-06-13; negative = subsidence).</div>`;
+        arNote = `<div class="pop-note">No coordinate-matched benchmark leveling is published for this site in its GSP report (Kings reports InSAR only; Westside's leveled benchmarks have no coordinates). The series is DWR's <b>TRE ALTAMIRA InSAR</b> cumulative vertical displacement sampled at the benchmark's coordinates (cumulative since 2015-06-13; negative = subsidence).</div>`;
     } else if (!isExt && p.source && /annual report/i.test(p.source)) {
         arNote = (/Kaweah|Tule/i.test(p.source)
             ? `<div class="pop-note">Series from the GSP <b>annual reports</b>: per-benchmark surveyed ground-surface elevations, plotted as displacement relative to the earliest surveyed year. Best-effort estimate — read the trend, not any single point.</div>`

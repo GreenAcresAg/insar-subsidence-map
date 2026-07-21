@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
-"""Give the Kings subbasin benchmarks a real subsidence series by sampling DWR InSAR at each point.
+"""Give benchmarks a real subsidence series by sampling DWR InSAR at each point — for the subbasins
+whose GSP reports carry no coordinate-matched numeric leveling for the mapped benchmarks:
 
-Unlike Tulare Lake / Kaweah / Tule, the Kings Basin annual report publishes NO numeric per-benchmark
-subsidence — it monitors via InSAR and only shows benchmarks colour-classed on a map. But the Kings
-benchmark coordinates are already accurate, and DWR's InSAR is authoritative, so we build each
-benchmark's cumulative-displacement history by sampling the same DWR "Total displacement since
-2015-06-13" ImageServer (TRE ALTAMIRA) that the map already displays.
+  - Kings: the report only colour-classes benchmarks by InSAR on a map (no numbers at all).
+  - Westside: the report DOES tabulate leveling (Table 5-5, "BM #1–26") but those benchmarks have no
+    published coordinates and don't match the mapped DWR "SUB0xx" set — so it can't be joined.
 
-Efficient pattern: one getSamples call per dated catalog raster, with every Kings benchmark as a
-multipoint (≈132 calls total → a full ~2015→2026 series for each benchmark). Negative = subsidence,
-matching the survey-monument convention.
+Both mapped benchmark sets have accurate coordinates, and DWR's InSAR is authoritative, so we build
+each benchmark's cumulative-displacement history by sampling the same DWR "Total displacement since
+2015-06-13" ImageServer (TRE ALTAMIRA) the map already displays.
 
-Run AFTER prep_benchmarks.py (and it's independent of prep_benchmarks_annual.py):
-    python3 prep_kings_insar.py
-Updates data/benchmarks.geojson + data/benchmark_series.json in place (Kings features only).
+Efficient pattern: one getSamples call per dated catalog raster, every benchmark as a multipoint
+(≈130 calls → a full ~2015→2026 series each). Negative = subsidence. Extensometers are skipped
+(they're their own aquifer-compaction records).
+
+Run AFTER prep_benchmarks.py (independent of prep_benchmarks_annual.py):
+    python3 prep_insar_benchmarks.py
+Updates data/benchmarks.geojson + data/benchmark_series.json in place.
 """
 import json, os, re, time, urllib.parse, urllib.request
 from datetime import datetime
@@ -56,9 +59,13 @@ def catalog():
 def main():
     geo = json.load(open(os.path.join(DATA, "benchmarks.geojson")))
     bser = json.load(open(os.path.join(DATA, "benchmark_series.json")))
-    kings = [f for f in geo["features"] if "Kings" in (f["properties"].get("basin") or "")]
-    pts = [f["geometry"]["coordinates"] for f in kings]
-    print(f"{len(kings)} Kings benchmarks to sample")
+    BASINS = ("Kings", "Westside")   # subbasins lacking coordinate-matched numeric leveling
+    targets = [f for f in geo["features"]
+               if any(b in (f["properties"].get("basin") or "") for b in BASINS)
+               and "extensometer" not in (f["properties"].get("site_type") or "").lower()]
+    pts = [f["geometry"]["coordinates"] for f in targets]
+    print(f"{len(targets)} benchmarks to sample "
+          f"({', '.join(sorted({f['properties']['basin'].split()[-1] for f in targets}))})")
 
     rasters = catalog()
     print(f"{len(rasters)} InSAR dates in catalog")
@@ -79,7 +86,7 @@ def main():
             print(f"  sampled {k + 1}/{len(rasters)} dates")
 
     enriched = 0
-    for i, f in enumerate(kings):
+    for i, f in enumerate(targets):
         pts_i = sorted(series[i])
         if len(pts_i) < 3:
             continue
@@ -92,7 +99,7 @@ def main():
 
     json.dump(geo, open(os.path.join(DATA, "benchmarks.geojson"), "w"))
     json.dump(bser, open(os.path.join(DATA, "benchmark_series.json"), "w"))
-    print(f"enriched {enriched} Kings benchmarks with InSAR series.")
+    print(f"enriched {enriched} benchmarks with InSAR series.")
 
 
 if __name__ == "__main__":
