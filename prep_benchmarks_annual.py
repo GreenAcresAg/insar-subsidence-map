@@ -84,10 +84,11 @@ def build_tulare():
     return series, coords
 
 
-def build_elev(subbasin, month_frac):
+def build_elev(subbasin, month_frac, coords_file=None):
     """Elevation-based subbasins (Kaweah, Tule): displacement = elevation(year) − earliest-year
-    elevation; negative = subsidence. Coordinates taken from the CSV when present (Tule), else {}
-    (Kaweah has none in-CSV and is name-matched to existing map features)."""
+    elevation; negative = subsidence. Coordinates taken from the CSV when present (Tule E/P/D), else
+    {} (Kaweah is name-matched to existing map features). `coords_file` supplies extra benchmark
+    coordinates harvested from member-GSA GSPs (e.g. Lower Tule's L-series)."""
     elev, coords = defaultdict(dict), {}
     for r in rows_for(subbasin):
         st = canon(r["station_id"])
@@ -101,6 +102,11 @@ def build_elev(subbasin, month_frac):
                 coords[norm(st)] = [round(float(r["longitude"]), 6), round(float(r["latitude"]), 6)]
             except ValueError:
                 pass
+    if coords_file and os.path.exists(coords_file):
+        for r in csv.DictReader(open(coords_file)):
+            k = norm(canon(r["station_id"]))
+            if k not in coords:
+                coords[k] = [round(float(r["longitude"]), 6), round(float(r["latitude"]), 6)]
     series = {}
     for st, ys in elev.items():
         base = ys[min(ys)]
@@ -169,7 +175,8 @@ def main():
     configs = [
         (build_tulare, "Tulare Lake", "5-022.12 Tulare Lake", "SGMA annual reports (WY2020–25)"),
         (lambda: build_elev("Kaweah", 0.8), "Kaweah", "5-022.11 Kaweah", "Kaweah annual reports (WY2023–25)"),
-        (lambda: build_elev("Tule", 0.55), "Tule", "5-022.13 Tule", "Tule annual reports (WY2024–25)"),
+        (lambda: build_elev("Tule", 0.55, os.path.join(os.path.dirname(AR_CSV), "tule_benchmark_coords.csv")),
+         "Tule", "5-022.13 Tule", "Tule annual reports (WY2024–25)"),
         (build_westside, "Westside", "5-022.09 Westside", "Westside GSP + annual report (WWD leveling)"),
     ]
     for build, key, full, source in configs:
