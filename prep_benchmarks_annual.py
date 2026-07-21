@@ -110,6 +110,28 @@ def build_elev(subbasin, month_frac):
     return series, coords
 
 
+def build_westside():
+    """Westside Table 5-5 gives per-benchmark annual subsidence RATES (positive = subsidence);
+    accumulate them into a cumulative-displacement series (negative = subsidence). Coordinates come
+    from the GSP Table 3-15 join (in the CSV)."""
+    rates, coords = defaultdict(dict), {}
+    for r in rows_for("Westside"):
+        m = re.match(r"WY(20\d\d) Subsidence Rate", r["metric"])
+        if m and r["value"] not in ("", None, "None"):
+            rates[r["station_id"]][int(m.group(1))] = float(r["value"])
+        if r["latitude"] and r["longitude"]:
+            coords[norm(r["station_id"])] = [round(float(r["longitude"]), 6), round(float(r["latitude"]), 6)]
+    series = {}
+    for st, ry in rates.items():
+        cum, pts = 0.0, [[2019.5, 0.0]]
+        for y in sorted(ry):
+            cum = round(cum + ry[y], 4)
+            pts.append([round(y + 0.2, 2), -cum])   # negative = subsidence
+        if len(pts) >= 2:
+            series[st] = pts
+    return series, coords
+
+
 def merge(geo, bser, series, coords, basin_key, basin_full, source, next_id):
     by_norm = {norm(st): st for st in series}
     matched, enriched = set(), 0
@@ -148,6 +170,7 @@ def main():
         (build_tulare, "Tulare Lake", "5-022.12 Tulare Lake", "SGMA annual reports (WY2020–25)"),
         (lambda: build_elev("Kaweah", 0.8), "Kaweah", "5-022.11 Kaweah", "Kaweah annual reports (WY2023–25)"),
         (lambda: build_elev("Tule", 0.55), "Tule", "5-022.13 Tule", "Tule annual reports (WY2024–25)"),
+        (build_westside, "Westside", "5-022.09 Westside", "Westside GSP + annual report (WWD leveling)"),
     ]
     for build, key, full, source in configs:
         series, coords = build()

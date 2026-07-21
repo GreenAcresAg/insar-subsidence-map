@@ -57,11 +57,12 @@ services — no data is stored locally.
     and Tule (WY2024–25) = surveyed ground-surface elevations plotted as displacement from the
     earliest surveyed year. All flagged in-popup as a stitched estimate. (Tule's Lower-Tule /
     Alpaugh / Kern-Tulare benchmarks are omitted — the reports publish no coordinates for them.)
-    **Kings** and **Westside** benchmarks have no coordinate-matched numeric leveling in their
-    reports (Kings only colour-classes benchmarks by InSAR; Westside tabulates leveling for a
-    different benchmark set that has no published coordinates), so each is given DWR TRE ALTAMIRA
-    InSAR cumulative displacement **sampled at its coordinates** (2015→present), flagged as
-    InSAR-derived in-popup.
+    **Kings** benchmarks have no numeric leveling in the report (it only colour-classes them by
+    InSAR), so each is given DWR TRE ALTAMIRA InSAR cumulative displacement **sampled at its
+    coordinates** (2015→present). **Westside** benchmarks (WWD GPS network, "BM #1–26" + DWR/USBR
+    aqueduct benchmarks) use real **leveling** — annual winter/spring subsidence rates from the
+    annual report (Table 5-5) accumulated to cumulative displacement, with coordinates joined from
+    the 2025 Westside GSP (Table 3-15). All non-survey series are flagged by source in-popup.
     **Extensometers** are drawn separately (blue) and labelled as aquifer-system compaction, not
     surface elevation.
 - **Topography (2021 LiDAR)** — elevation **contours** (selectable 1/2/5/10/20 ft interval) and

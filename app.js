@@ -930,10 +930,13 @@ function openMonitorPopup(lngLat, f){
     let arNote = "";
     if (!isExt && p.source && /InSAR/i.test(p.source)) {
         arNote = `<div class="pop-note">No coordinate-matched benchmark leveling is published for this site in its GSP report (Kings reports InSAR only; Westside's leveled benchmarks have no coordinates). The series is DWR's <b>TRE ALTAMIRA InSAR</b> cumulative vertical displacement sampled at the benchmark's coordinates (cumulative since 2015-06-13; negative = subsidence).</div>`;
-    } else if (!isExt && p.source && /annual report/i.test(p.source)) {
-        arNote = (/Kaweah|Tule/i.test(p.source)
-            ? `<div class="pop-note">Series from the GSP <b>annual reports</b>: per-benchmark surveyed ground-surface elevations, plotted as displacement relative to the earliest surveyed year. Best-effort estimate — read the trend, not any single point.</div>`
-            : `<div class="pop-note">Series stitched from the Tulare Lake GSP <b>annual reports</b>: per-water-year average annual change (WY2020–22, from the monitoring-map figures) chained with Fall-to-Fall releveling (WY2022→2025, Table E-1), cumulative from 2019. A best-effort estimate combining two survey bases — read the trend, not any single point.</div>`);
+    } else if (!isExt && p.source && /annual report|GSP/i.test(p.source)) {
+        if (/Westside/i.test(p.source))
+            arNote = `<div class="pop-note">Series from Westlands Water District GPS <b>benchmark leveling</b> (annual report Table 5-5): winter/spring annual subsidence rates accumulated to cumulative displacement since Jan 2020. Coordinates from the 2025 Westside GSP Table 3-15. Negative = subsidence.</div>`;
+        else if (/Kaweah|Tule/i.test(p.source))
+            arNote = `<div class="pop-note">Series from the GSP <b>annual reports</b>: per-benchmark surveyed ground-surface elevations, plotted as displacement relative to the earliest surveyed year. Best-effort estimate — read the trend, not any single point.</div>`;
+        else
+            arNote = `<div class="pop-note">Series stitched from the Tulare Lake GSP <b>annual reports</b>: per-water-year average annual change (WY2020–22, from the monitoring-map figures) chained with Fall-to-Fall releveling (WY2022→2025, Table E-1), cumulative from 2019. A best-effort estimate combining two survey bases — read the trend, not any single point.</div>`;
     }
     const html = `<div class="pop-title">${esc(title)}</div><div class="pop-type">${esc(type)}</div>` +
         `${rowsHtml}<div class="pop-sec">History</div>${chart}${extNote}${arNote}`;
