@@ -928,8 +928,8 @@ function openMonitorPopup(lngLat, f){
         ? `<div class="pop-note">Extensometers measure compaction of the aquifer system within the borehole, relative to a deep anchor — this is <b>not</b> ground-surface elevation and uses a different sign/datum than the survey benchmarks. Don't compare it directly with nearby benchmark or GPS records: e.g. GPS station P300 (4.9 km away) shows the surface essentially flat (±0.03 ft) over 2004–2026.</div>`
         : "";
     const arNote = (!isExt && p.source && /annual report/i.test(p.source))
-        ? (/Kaweah/i.test(p.source)
-            ? `<div class="pop-note">Series from the Kaweah GSP <b>annual reports</b>: per-benchmark surveyed ground-surface elevations (2020–2025), plotted as displacement relative to the 2020 baseline. Best-effort estimate — read the trend, not any single point.</div>`
+        ? (/Kaweah|Tule/i.test(p.source)
+            ? `<div class="pop-note">Series from the GSP <b>annual reports</b>: per-benchmark surveyed ground-surface elevations, plotted as displacement relative to the earliest surveyed year. Best-effort estimate — read the trend, not any single point.</div>`
             : `<div class="pop-note">Series stitched from the Tulare Lake GSP <b>annual reports</b>: per-water-year average annual change (WY2020–22, from the monitoring-map figures) chained with Fall-to-Fall releveling (WY2022→2025, Table E-1), cumulative from 2019. A best-effort estimate combining two survey bases — read the trend, not any single point.</div>`)
         : "";
     const html = `<div class="pop-title">${esc(title)}</div><div class="pop-type">${esc(type)}</div>` +

@@ -54,8 +54,9 @@ services — no data is stored locally.
     **Tulare Lake** and **Kaweah** subbasins (which DWR's central export barely covers) the
     benchmark series are enriched from the **GSP annual-report PDFs**: Tulare Lake (WY2020–25) =
     per-water-year average annual change chained with Fall-to-Fall releveling; Kaweah (WY2023–25)
-    = surveyed ground-surface elevations plotted as displacement from the 2020 baseline. Both are
-    flagged in-popup as a stitched estimate.
+    and Tule (WY2024–25) = surveyed ground-surface elevations plotted as displacement from the
+    earliest surveyed year. All flagged in-popup as a stitched estimate. (Tule's Lower-Tule /
+    Alpaugh / Kern-Tulare benchmarks are omitted — the reports publish no coordinates for them.)
     **Extensometers** are drawn separately (blue) and labelled as aquifer-system compaction, not
     surface elevation.
 - **Topography (2021 LiDAR)** — elevation **contours** (selectable 1/2/5/10/20 ft interval) and

@@ -84,24 +84,30 @@ def build_tulare():
     return series, coords
 
 
-def build_kaweah():
-    # displacement = elevation(year) − elevation(2020); negative = subsidence.
-    elev = defaultdict(dict)
-    for r in rows_for("Kaweah"):
+def build_elev(subbasin, month_frac):
+    """Elevation-based subbasins (Kaweah, Tule): displacement = elevation(year) − earliest-year
+    elevation; negative = subsidence. Coordinates taken from the CSV when present (Tule), else {}
+    (Kaweah has none in-CSV and is name-matched to existing map features)."""
+    elev, coords = defaultdict(dict), {}
+    for r in rows_for(subbasin):
+        st = canon(r["station_id"])
         m = re.match(r"(20\d\d) Elevation", r["metric"])
         if m and r["value"] not in ("", None, "None"):
             e = float(r["value"])
-            if e > 50:   # real Kaweah amsl elevations are 200–460 ft; 0/blank is bad data
-                elev[canon(r["station_id"])][int(m.group(1))] = e
+            if 50 < e < 700:   # real amsl elevations; 0/blank is bad data
+                elev[st][int(m.group(1))] = e
+        if r["latitude"] and r["longitude"] and st not in coords:
+            try:
+                coords[norm(st)] = [round(float(r["longitude"]), 6), round(float(r["latitude"]), 6)]
+            except ValueError:
+                pass
     series = {}
     for st, ys in elev.items():
-        if 2020 not in ys:
-            continue
-        base = ys[2020]
-        pts = [[round(y + 0.8, 2), round(ys[y] - base, 4)] for y in sorted(ys)]
+        base = ys[min(ys)]
+        pts = [[round(y + month_frac, 2), round(ys[y] - base, 4)] for y in sorted(ys)]
         if len(pts) >= 2:
             series[st] = pts
-    return series, {}   # no coordinates in the Kaweah report; name-match to map features
+    return series, coords
 
 
 def merge(geo, bser, series, coords, basin_key, basin_full, source, next_id):
@@ -140,7 +146,8 @@ def main():
                    if str(p["properties"]["id"]).isdigit()), default=1000)
     configs = [
         (build_tulare, "Tulare Lake", "5-022.12 Tulare Lake", "SGMA annual reports (WY2020–25)"),
-        (build_kaweah, "Kaweah", "5-022.11 Kaweah", "Kaweah annual reports (WY2023–25)"),
+        (lambda: build_elev("Kaweah", 0.8), "Kaweah", "5-022.11 Kaweah", "Kaweah annual reports (WY2023–25)"),
+        (lambda: build_elev("Tule", 0.55), "Tule", "5-022.13 Tule", "Tule annual reports (WY2024–25)"),
     ]
     for build, key, full, source in configs:
         series, coords = build()
