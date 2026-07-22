@@ -24,7 +24,7 @@ from datetime import datetime
 DATA = os.path.join(os.path.dirname(__file__), "data")
 SVC = ("https://gis.water.ca.gov/arcgisimg/rest/services/SAR/"
        "Vertical_Displacement_TRE_ALTAMIRA_Total_Since_20150613_Mosaic/ImageServer")
-SOURCE = "DWR InSAR (TRE ALTAMIRA) sampled at benchmark"
+SOURCE = "DWR TRE ALTAMIRA InSAR (Total displacement since 2015-06-13 ImageServer) sampled at benchmark coordinates"
 
 
 def http(url, data=None, tries=3):

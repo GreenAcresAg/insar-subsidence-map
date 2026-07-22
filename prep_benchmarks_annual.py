@@ -173,11 +173,15 @@ def main():
     next_id = max((int(p["properties"]["id"]) for p in geo["features"]
                    if str(p["properties"]["id"]).isdigit()), default=1000)
     configs = [
-        (build_tulare, "Tulare Lake", "5-022.12 Tulare Lake", "SGMA annual reports (WY2020–25)"),
-        (lambda: build_elev("Kaweah", 0.8), "Kaweah", "5-022.11 Kaweah", "Kaweah annual reports (WY2023–25)"),
+        (build_tulare, "Tulare Lake", "5-022.12 Tulare Lake",
+         "Tulare Lake Subbasin Annual Reports WY2020–25 (Fall-to-Fall Table E-1 / monitoring figures)"),
+        (lambda: build_elev("Kaweah", 0.8), "Kaweah", "5-022.11 Kaweah",
+         "Kaweah Subbasin Annual Reports WY2023–25 (subsidence table pp54–56)"),
         (lambda: build_elev("Tule", 0.55, os.path.join(os.path.dirname(AR_CSV), "tule_benchmark_coords.csv")),
-         "Tule", "5-022.13 Tule", "Tule annual reports (WY2024–25)"),
-        (build_westside, "Westside", "5-022.09 Westside", "Westside GSP + annual report (WWD leveling)"),
+         "Tule", "5-022.13 Tule",
+         "Tule Subbasin Annual Reports WY2024–25 (Table E-1 / SMC table); coords via subbasin GSP (LTRID Table 4-4 p278)"),
+        (build_westside, "Westside", "5-022.09 Westside",
+         "Westside Subbasin Annual Report WY2025 Table 5-5 (leveling); coords via Westside Subbasin GSP Table 3-15 p361"),
     ]
     for build, key, full, source in configs:
         series, coords = build()
